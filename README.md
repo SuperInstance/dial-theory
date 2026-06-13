@@ -1,42 +1,38 @@
 # Dial Theory
 
-A Rust library for mapping intellectual traditions across multi-dimensional dial positions.
+**A framework for mapping intellectual traditions onto a seven-dimensional dial space** — quantifying philosophical positions as coordinates and computing distances, clusters, and synthesis potential between traditions. It turns qualitative "schools of thought" into geometric data that can be measured, clustered, and visualized.
 
-[![Crates.io](https://img.shields.io/crates/v/dial-theory.svg)](https://crates.io/crates/dial-theory)
+## Why It Matters
 
-## What is Dial Theory?
+The humanities struggle with a fundamental problem: how do you compare intellectual traditions objectively? "How close is Pragmatism to Analytic Philosophy?" is usually answered with prose, not numbers. Dial Theory provides a quantitative alternative: position each tradition on seven continuous axes (epistemology, social organization, methodology, etc.) and use geometric distance to measure similarity.
 
-Dial Theory is a framework for understanding how different intellectual traditions — philosophy, science, religion, political thought — relate to each other through their positions on continuous axes ("dials"). Rather than treating traditions as isolated silos, Dial Theory maps them into a shared multi-dimensional space where distances, clusters, and bridges become visible.
+This approach has real applications in **computational humanities**, **education** (visualizing how ideas relate), **AI alignment** (mapping different safety frameworks), and **interdisciplinary research** (finding traditions that bridge disciplines). The framework supports:
 
-### The Seven Dials
+- **Distance computation** — Euclidean, angular, and Manhattan distances in 7D dial space
+- **Nearest-neighbor search** — Find the k most similar traditions to any query
+- **Bridge detection** — Find traditions that mediate between distant schools of thought
+- **Synthesis with paradox detection** — Merge two traditions and identify where their core commitments conflict
+- **Evolution simulation** — Model how traditions drift, split, and merge over historical time
+- **Topology analysis** — Find clusters, sparse regions ("holes"), and boundary traditions
 
-Each tradition is positioned on seven continuous axes, ranging from -1 to +1:
+## How It Works
 
-| Axis | ← Negative Pole | Positive Pole → |
-|------|-----------------|-----------------|
-| **Epistemology** | Rationalist | Empiricist |
-| **Social** | Individualist | Collectivist |
-| **Methodology** | Reductionist | Holist |
-| **Abstraction** | Abstract | Concrete |
-| **Change** | Conservative | Progressive |
-| **Scope** | Universalist | Relativist |
-| **Reasoning** | Formalist | Intuitionist |
+**Seven Axes:** Each tradition is positioned on seven orthogonal dimensions:
+1. **Epistemology** — Rationalist (−1) ↔ Empiricist (+1)
+2. **Social** — Individualist (−1) ↔ Collectivist (+1)
+3. **Methodology** — Reductionist (−1) ↔ Holist (+1)
+4. **Abstraction** — Abstract (−1) ↔ Concrete (+1)
+5. **Change** — Conservative (−1) ↔ Progressive (+1)
+6. **Scope** — Universalist (−1) ↔ Relativist (+1)
+7. **Reasoning** — Formalist (−1) ↔ Intuitionist (+1)
 
-### Example: Dial Positions
+A `Dial` is a single axis-position pair with an optional confidence value (0.0–1.0). A `Tradition` is a collection of seven dials, forming a point in 7D space.
 
-```
-Analytic Philosophy:  Epi:+0.6  Soc:-0.3  Met:-0.7  Abs:-0.8  Chg:+0.2  Sco:-0.6  Rea:-0.9
-Taoism:               Epi:-0.6  Soc:+0.1  Met:+0.8  Abs: 0.0  Chg:-0.2  Sco:+0.4  Rea:+0.9
-```
+**Distance metrics:** The primary distance is Euclidean (L2) across all seven axes, with optional per-axis weights. Angular distance (cosine similarity) captures directional alignment regardless of magnitude. The tension points analysis identifies which specific axes contribute most to the distance between two traditions.
 
-Analytic Philosophy leans empiricist, reductionist, abstract, and formalist — while Taoism is rationalist, holistic, and deeply intuitionist. Their distance in dial space quantifies their philosophical divergence.
+**Synthesis and paradox detection:** When synthesizing two traditions (weighted average of positions), the framework detects paradoxes — axes where both parents have strong (>0.5) opposing positions. For example, synthesizing Marxism (Change=+0.9) with Confucianism (Change=−0.6) produces a paradox on the Change axis because both traditions have strong, opposite commitments.
 
-## Installation
-
-```toml
-[dependencies]
-dial-theory = "0.1"
-```
+**Topology analysis:** Single-linkage clustering with union-find groups traditions within a distance threshold. Random sampling in the 7D hypercube identifies "holes" — regions of the tradition space with no existing tradition nearby, suggesting unexplored intellectual territory.
 
 ## Quick Start
 
@@ -46,173 +42,48 @@ use dial_theory::distance;
 use dial_theory::nearest;
 use dial_theory::synthesis;
 
-// Get pre-built traditions
+// Compare two traditions
 let analytic = prebuilt::analytic_philosophy();
 let pragmatism = prebuilt::pragmatism();
-let taoism = prebuilt::taoism();
-
-// Measure distance
-let dist = distance::tradition_distance(&analytic, &taoism);
+let dist = distance::tradition_distance(&analytic, &pragmatism);
 println!("Euclidean distance: {:.4}", dist.euclidean);
-println!("Angular distance: {:.4}", dist.angular);
-println!("Tension points: {:?}", dist.tension_points);
+println!("Tension axes: {:?}", dist.tension_points);
 
 // Find nearest neighbors
 let all = prebuilt::all();
-let nearest = nearest::nearest_neighbors(&analytic, &all, 3);
-for n in &nearest {
-    println!("  {} (distance: {:.4})", n.tradition.name, n.distance.euclidean);
-}
-
-// Find bridge traditions between distant pair
-let bridges = nearest::find_bridges(&analytic, &taoism, &all, 3);
-for b in &bridges {
-    println!("Bridge: {} (score: {:.4})", b.tradition.name, b.bridge_score);
+let nn = nearest::nearest_neighbors(&analytic, &all, 3);
+for n in &nn {
+    println!("{}: {:.4}", n.tradition.name, n.distance.euclidean);
 }
 
 // Synthesize two traditions
 let result = synthesis::synthesize(&analytic, &pragmatism, "Analytic Pragmatism");
-println!("Synthesis: {}", result.tradition.name);
-if synthesis::has_paradoxes(&result) {
-    for p in &result.paradoxes {
-        println!("  Paradox: {}", p.description);
-    }
-}
+println!("Paradoxes: {}", result.paradoxes.len());
 ```
 
-## 15 Pre-built Traditions
+## API
 
-| Tradition | Era | Character |
-|-----------|-----|-----------|
-| Analytic Philosophy | Early 20th c. – present | Logic, clarity, formal methods |
-| Phenomenology | Early 20th c. – present | Conscious experience, intentionality |
-| Pragmatism | Late 19th c. – present | Practical consequences, what works |
-| Marxism | Mid 19th c. – present | Class struggle, historical materialism |
-| Buddhism | 5th c. BCE – present | Suffering, impermanence, mindfulness |
-| Taoism | 4th c. BCE – present | Harmony with Tao, naturalness |
-| Existentialism | 19th–20th c. | Freedom, authenticity, dread |
-| Structuralism | 1950s–1970s | Underlying structures, signs |
-| Postmodernism | Late 20th c. – present | Anti-grand-narrative, power critique |
-| Process Philosophy | Early 20th c. – present | Becoming over being |
-| Confucianism | 6th c. BCE – present | Social harmony, virtue, relationships |
-| Feminist Epistemology | 1980s – present | Situated knowledge, power & gender |
-| Indigenous Knowledge | Prehistoric – present | Relational ontology, oral tradition |
-| Systems Theory | 1940s – present | Interconnected wholes, emergence |
-| Complexity Science | 1980s – present | Non-linear dynamics, self-organization |
+### Core Types
+- `Axis` — Enum of the seven dimensions (Epistemology, Social, Methodology, Abstraction, Change, Scope, Reasoning)
+- `Dial` — Position (−1..1) and confidence (0..1) on a single axis
+- `Tradition` — Named collection of 7 dials with description and era
+- `DialWeights` — Per-axis weights for emphasizing dimensions in distance calculations
 
-## Modules
+### Modules
+- `distance` — `tradition_distance()`, `euclidean_distance()`, `angular_distance()` with tension point analysis
+- `nearest` — `nearest_neighbors()` (k-NN search), `find_bridges()` (mediating traditions)
+- `synthesis` — `synthesize()`, `synthesize_weighted()`, paradox detection
+- `evolution` — `apply_drift()`, `simulate_evolution()`, `split()`, trajectory projection
+- `topology` — `analyze()`, `find_clusters()`, `find_holes()`, `find_boundaries()`
 
-### `dial` — Core Types
+### Pre-built Traditions
+15 calibrated traditions: Analytic Philosophy, Phenomenology, Pragmatism, Marxism, Buddhism, Taoism, Existentialism, Structuralism, Postmodernism, Process Philosophy, Confucianism, Feminist Epistemology, Indigenous Knowledge Systems, Systems Theory, Complexity Science
 
-The [`Dial`] type represents a position on a single axis with confidence. [`Axis`] enumerates the seven dimensions. [`DialWeights`] allows emphasizing certain axes in comparisons.
+## Architecture Notes
 
-```rust
-use dial_theory::dial::{Axis, Dial, DialWeights};
+Dial Theory is a research and visualization tool within SuperInstance's knowledge graph. It models intellectual relationships as geometric data, enabling quantitative analysis of philosophical landscapes and educational tools for exploring how ideas connect.
 
-let dial = Dial::new(Axis::Epistemology, 0.6);  // Leans empiricist
-let confident = Dial::with_confidence(Axis::Epistemology, 0.6, 0.8);
-
-// Weight epistemology more than other axes
-let mut weights = DialWeights::uniform();
-weights.set(Axis::Epistemology, 2.0);
-```
-
-### `distance` — Tradition Distance
-
-Computes Euclidean, angular, and Manhattan distances between traditions. Identifies alignment (which dials agree) and tension points (where traditions clash most).
-
-### `nearest` — Nearest Neighbors & Bridges
-
-K-nearest neighbor search in dial space. Bridge detection finds traditions that are close to both of two distant traditions — intellectual mediators.
-
-### `synthesis` — Tradition Synthesis
-
-Merges two traditions by interpolating dial positions. Supports weighted synthesis (one tradition contributes more). Automatically detects paradoxes where both parents have strong opposing commitments.
-
-```rust
-let result = synthesis::synthesize_weighted(&marxism, &confucianism, "Marxist-Confucian", 0.7);
-// Detects paradox on Change axis: Marxism is progressive (+0.9), Confucianism conservative (-0.6)
-```
-
-### `topology` — Space Topology
-
-Analyzes the structure of the tradition space: clusters of similar traditions, unexplored regions (holes), and boundaries (traditions closest to each pole of each axis).
-
-```rust
-use dial_theory::topology;
-
-let topo = topology::analyze(&prebuilt::all(), 1.2);
-for cluster in &topo.clusters {
-    println!("Cluster: {} (diameter: {:.2})", cluster.label, cluster.diameter);
-}
-for hole in &topo.holes {
-    println!("Gap: {:.2} from nearest tradition", hole.radius);
-}
-```
-
-### `evolution` — Temporal Dynamics
-
-Models how traditions drift over time. Supports linear interpolation of historical trajectories, projection of future positions, and splitting/merging of traditions.
-
-```rust
-use dial_theory::evolution;
-
-// Simulate 100 years of drift
-let trajectory = evolution::simulate_evolution(&pragmatism, 1900, 2000, 10, 0.05);
-
-// Get interpolated position at any year
-let pos_1950 = trajectory.position_at(Axis::Epistemology, 1950);
-
-// Project forward
-let future = trajectory.project(2050);
-```
-
-## Visualization
-
-The tradition space can be visualized as a radar/spider chart for individual traditions:
-
-```
-         Epistemology
-         R ◄─────► E
-              |
-Social   I ◄──┼──► C    Methodology
-              |         R ◄─────► H
-   ──────────┼──────────
-         Abstraction
-         A ◄─────► C
-              |
-  Change  C ◄──┼──► P    Scope
-              |         U ◄─────► R
-         Reasoning
-         F ◄─────► I
-```
-
-Or as a 2D projection (e.g., Epistemology × Methodology):
-
-```
-         Holist
-           ↑
-    Taoism •        Buddhism •
-                         Systems Theory •
-  Confucianism •               Complexity Science •
-                     Phenomenology •
-  Marxism •
-  Feminist Ep •
-                     Pragmatism •
-  Postmodernism •    
-  Existentialism •   Analytic Philosophy •
-           • Structuralism
-           ←────────────────────────────────→
-         Rationalist                  Empiricist
-```
-
-## Distance Metrics
-
-| Metric | Formula | Range | Use Case |
-|--------|---------|-------|----------|
-| Euclidean | √(Σ(pos_a - pos_b)²) | [0, √28] ≈ [0, 5.29] | Overall similarity |
-| Angular | arccos(cos_sim) | [0, π] | Direction matters more than magnitude |
-| Manhattan | Σ|pos_a - pos_b| | [0, 14] | Robust to outliers |
+See the full architecture: [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md)
 
 ## License
 
